@@ -15,7 +15,7 @@ async function start() {
   // ==== WEBSOCKETS V0 ==== //
   app.ws('/:node_ip', {
     // OPTIONS
-    compression: uWS.DEDICATED_COMPRESSOR_3KB,
+    compression: uWS.DISABLED,
     maxPayloadLength: 16 * 1024 * 1024,
     maxBackpressure: MAX_SOCKET_BACKPRESSURE_BYTES,
     idleTimeout: 60,
