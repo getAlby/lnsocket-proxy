@@ -1,9 +1,10 @@
 import { HttpResponse, RecognizedString, WebSocket } from 'uWebSockets.js'
-import { filter, take } from 'rxjs/operators'
+import { firstValueFrom } from 'rxjs'
+import { filter } from 'rxjs/operators'
 import { webSocketDrain$ } from './streams'
 import { MAX_SOCKET_BACKPRESSURE_BYTES } from './constants'
 
-export const sendWsResponse = ({
+export const sendWsResponse = async ({
   ws,
   data,
   end,
@@ -13,33 +14,30 @@ export const sendWsResponse = ({
   data?: ArrayBuffer
   end?: boolean
   status?: number
-}): void => {
+}): Promise<void> => {
   if (ws.closed) return
 
   if (ws.getBufferedAmount() >= MAX_SOCKET_BACKPRESSURE_BYTES - 1024 * 3) {
     // Too much backpressure, wait until backpressure goes under limit to send message
-    webSocketDrain$
-      .pipe(
+    await firstValueFrom(
+      webSocketDrain$.pipe(
         filter(
           (currentPressure: number) =>
             currentPressure < MAX_SOCKET_BACKPRESSURE_BYTES - 1024 * 3
-        ),
-        take(1)
+        )
       )
-      .subscribe(() => {
-        if (ws.closed) return
+    )
 
-        ws.cork(() => {
-          data && ws.send(data, true)
-          end && status && ws.end(status)
-        })
-      })
-  } else {
+    if (ws.closed) return
+  }
+
+  await new Promise<void>(resolve => {
     ws.cork(() => {
       data && ws.send(data, true)
       end && status && ws.end(status)
+      resolve()
     })
-  }
+  })
 }
 
 export function arrayBufferToString(buffer: ArrayBuffer): string {

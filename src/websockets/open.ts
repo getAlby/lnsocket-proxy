@@ -4,10 +4,15 @@ import { WebSocket } from 'uWebSockets.js'
 
 async function handleOpen(ws: WebSocket): Promise<void> {
   const { nodeSocket } = ws as WebSocket & { nodeSocket: Socket }
+  let receivedMessageCount = 0
 
   // listen for data from ln node
-  nodeSocket.on('data', data => {
-    sendWsResponse({ ws, data })
+  nodeSocket.on('data', async data => {
+    receivedMessageCount += 1
+    nodeSocket.pause()
+    console.log({ receivedMessageCount })
+    await sendWsResponse({ ws, data })
+    nodeSocket.resume()
   })
 
   nodeSocket.on('close', () => {
