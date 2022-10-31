@@ -1,9 +1,11 @@
 import net, { isIP } from 'net'
+import { SocksClient, SocksClientOptions, SocksClientChainOptions } from 'socks';
 import { HttpResponse, HttpRequest, us_socket_context_t } from 'uWebSockets.js'
 import { RateLimiterMemory } from 'rate-limiter-flexible'
 import { arrayBufferToString, safetyPatchRes } from '../utils'
 import { Socket } from 'net'
 import { RESTRICT_ORIGINS } from '../constants'
+import { SocksCommand, SocksCommandOption, SocksProxyType } from 'socks/typings/common/constants'
 
 const connectionsRateLimiter = new RateLimiterMemory({
   points: 10, // connection attempts
@@ -73,6 +75,20 @@ async function handleUpgrade(
   let nodeSocket: Socket
 
   // create connection to ln node
+  const commandOption: SocksCommandOption = 'connect';
+  const proxyType: SocksProxyType = 5;
+  const sockOptions = {
+    proxy: {
+      host: 'some.proxy.org',
+      port: 8080,
+      type: proxyType,
+    },
+    command: commandOption,
+    destination: {
+      host: '',
+      port: 8080
+    }
+  }
   try {
     nodeSocket = await new Promise((resolve, reject) => {
       const connection = net.createConnection(parseInt(nodePort), nodeIP)
@@ -94,6 +110,8 @@ async function handleUpgrade(
 
     return
   }
+  const connection = await SocksClient.createConnection(sockOptions);
+  nodeSocket = connection.socket;
 
   if (res.done) return
 
