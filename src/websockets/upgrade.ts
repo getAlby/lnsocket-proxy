@@ -99,29 +99,30 @@ async function handleUpgrade(
     }
     const connection = await SocksClient.createConnection(sockOptions);
     nodeSocket = connection.socket;
+  } else {
+      try {
+        nodeSocket = await new Promise((resolve, reject) => {
+          const connection = net.createConnection(parseInt(nodePort), nodeIP)
+        
+          connection.on('connect', () => resolve(connection))
+        
+          connection.on('error', err => {
+            reject(err)
+          })
+        })
+      } catch (error) {
+        if (res.done) return
+      
+        res.cork(() => {
+          res
+            .writeStatus('404 Not Found')
+            .end((error as { message: string }).message)
+        })
+      
+        return
+      }
   }
 
-  try {
-    nodeSocket = await new Promise((resolve, reject) => {
-      const connection = net.createConnection(parseInt(nodePort), nodeIP)
-
-      connection.on('connect', () => resolve(connection))
-
-      connection.on('error', err => {
-        reject(err)
-      })
-    })
-  } catch (error) {
-    if (res.done) return
-
-    res.cork(() => {
-      res
-        .writeStatus('404 Not Found')
-        .end((error as { message: string }).message)
-    })
-
-    return
-  }
 
   if (res.done) return
 
