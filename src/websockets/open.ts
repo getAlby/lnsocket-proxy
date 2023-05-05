@@ -10,7 +10,7 @@ async function handleOpen(ws: WebSocket): Promise<void> {
   nodeSocket.on('data', async data => {
     receivedMessageCount += 1
     nodeSocket.pause()
-    console.log({ receivedMessageCount })
+    // console.debug({ receivedMessageCount })
     await sendWsResponse({ ws, data })
     nodeSocket.resume()
   })
